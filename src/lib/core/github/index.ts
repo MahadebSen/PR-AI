@@ -2,6 +2,10 @@
 
 export { createGitHubClient } from "./client";
 export {
+  fetchPullRequestFiles,
+  type PullRequestFileDiff,
+} from "./diff";
+export {
   getAuthenticatedOctokit,
   getPullRequest,
   listOpenPulls,

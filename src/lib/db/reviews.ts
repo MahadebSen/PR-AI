@@ -105,3 +105,61 @@ export function pullRequestKey(
 ): string {
   return `${repoOwner}/${repoName}#${prNumber}`;
 }
+
+export type TokenCounts = {
+  raw: number;
+  filtered: number;
+  chunked: number;
+};
+
+export type UpdateReviewJobStatusInput = {
+  errorMessage?: string | null;
+  completedAt?: Date | null;
+  tokenCounts?: TokenCounts;
+};
+
+export async function getReviewJobById(jobId: string) {
+  return prisma.reviewJob.findUnique({
+    where: { id: jobId },
+  });
+}
+
+export async function updateReviewJobStatus(
+  jobId: string,
+  status: ReviewJobStatus,
+  options: UpdateReviewJobStatusInput = {},
+) {
+  const data: {
+    status: ReviewJobStatus;
+    errorMessage?: string | null;
+    completedAt?: Date | null;
+    rawTokenCount?: number;
+    filteredTokenCount?: number;
+    chunkedTokenCount?: number;
+  } = { status };
+
+  if (options.errorMessage !== undefined) {
+    data.errorMessage = options.errorMessage;
+  }
+
+  if (options.completedAt !== undefined) {
+    data.completedAt = options.completedAt;
+  }
+
+  if (options.tokenCounts) {
+    data.rawTokenCount = options.tokenCounts.raw;
+    data.filteredTokenCount = options.tokenCounts.filtered;
+    data.chunkedTokenCount = options.tokenCounts.chunked;
+  }
+
+  return prisma.reviewJob.update({
+    where: { id: jobId },
+    data,
+  });
+}
+
+export async function getReviewJobCommentCount(jobId: string) {
+  return prisma.reviewComment.count({
+    where: { jobId },
+  });
+}
