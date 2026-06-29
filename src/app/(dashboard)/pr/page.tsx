@@ -5,8 +5,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { requireSession } from "@/lib/auth/session";
 
-export default function PRDetailsPage() {
+export default async function PRDetailsPage() {
+  await requireSession();
   return (
     <div className="px-6 py-8 md:px-10">
       <Card>

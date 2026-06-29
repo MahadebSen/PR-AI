@@ -5,12 +5,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { requireSession } from "@/lib/auth/session";
 
 type ReviewPageProps = {
   params: Promise<{ jobId: string }>;
 };
 
 export default async function ReviewPage({ params }: ReviewPageProps) {
+  await requireSession();
   const { jobId } = await params;
 
   return (
