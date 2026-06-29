@@ -1,14 +1,14 @@
-import { auth } from "@/lib/auth";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { requireSession } from "@/lib/auth/session";
 
 export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
-  const user = session?.user;
+  const session = await requireSession();
+  const user = session.user;
 
   return (
     <div className="flex min-h-full flex-1">

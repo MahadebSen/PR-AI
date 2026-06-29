@@ -34,22 +34,15 @@ export const authConfig = {
   },
   callbacks: {
     redirect({ url, baseUrl }: { url: string; baseUrl: string }) {
-      let target: string;
-
       if (url.startsWith("/")) {
-        target = `${baseUrl}${url}`;
-      } else if (new URL(url).origin === baseUrl) {
-        target = url;
-      } else {
-        return `${baseUrl}/dashboard`;
+        return `${baseUrl}${url}`;
       }
 
-      const pathname = new URL(target).pathname;
-      if (pathname === "/" || pathname === "/sign-in") {
-        return `${baseUrl}/dashboard`;
+      if (new URL(url).origin === baseUrl) {
+        return url;
       }
 
-      return target;
+      return `${baseUrl}/dashboard`;
     },
     authorized({
       auth,
@@ -84,6 +77,9 @@ export const authConfig = {
     }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
       }
 
       if (profile && typeof profile === "object" && "login" in profile) {

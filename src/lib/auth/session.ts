@@ -12,6 +12,17 @@ export async function requireSession() {
   return session;
 }
 
+/** For API routes — returns JSON-friendly null instead of redirecting. */
+export async function requireApiSession() {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  return session;
+}
+
 export async function getSessionUser() {
   const session = await auth();
 

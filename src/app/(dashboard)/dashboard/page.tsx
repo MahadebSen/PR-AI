@@ -1,6 +1,12 @@
 import Link from "next/link";
 
+import { DashboardDiscovery } from "@/components/discovery/DashboardDiscovery";
 import { requireSession } from "@/lib/auth/session";
+import {
+  getAuthenticatedOctokit,
+  GitHubAuthError,
+  listUserRepos,
+} from "@/lib/core/github";
 import { UserAvatar } from "@/components/dashboard/UserAvatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,16 +17,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-type DashboardStat = {
-  label: string;
-  value: string | number;
-};
-
-async function getDashboardStats(): Promise<DashboardStat[]> {
-  // Phase 2+: load real review metrics from the database.
-  return [];
-}
-
 export default async function DashboardPage() {
   const session = await requireSession();
   const user = session.user;
@@ -28,26 +24,31 @@ export default async function DashboardPage() {
   const githubProfileUrl = user.username
     ? `https://github.com/${user.username}`
     : null;
-  const stats = await getDashboardStats();
+
+  let initialRepos: Awaited<ReturnType<typeof listUserRepos>>["repos"] = [];
+  let initialHasNext = false;
+  let initialReposError: string | null = null;
+  let needsReauth = false;
+
+  try {
+    const octokit = await getAuthenticatedOctokit(session.user.id);
+    const result = await listUserRepos(octokit, 1, 10);
+    initialRepos = result.repos;
+    initialHasNext = result.hasNext;
+  } catch (error) {
+    if (error instanceof GitHubAuthError) {
+      needsReauth = true;
+      initialReposError = error.message;
+    } else if (error instanceof Error) {
+      initialReposError = error.message;
+    } else {
+      initialReposError = "Failed to load repositories";
+    }
+  }
 
   return (
     <div className="px-6 py-8 md:px-10">
-      {stats.length > 0 ? (
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
-          {stats.map((stat) => (
-            <Card key={stat.label} className="text-center">
-              <CardContent className="pt-6">
-                <p className="text-2xl font-bold">{stat.value}</p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
-                  {stat.label}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : null}
-
-      <Card className="border-border/80">
+      <Card className="mb-8 border-border/80">
         <CardHeader className="flex-row items-center gap-4 space-y-0">
           <UserAvatar
             name={displayName}
@@ -57,34 +58,34 @@ export default async function DashboardPage() {
           <div className="flex-1">
             <CardTitle>Welcome back, {displayName}</CardTitle>
             <CardDescription>
-              Your GitHub account is connected. Repo browsing and review
-              triggers arrive in Phase 2.
+              Browse repositories or paste a pull request URL to start a review.
             </CardDescription>
           </div>
           <Badge variant="secondary" className="shrink-0">
             Connected
           </Badge>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
-          {user.username ? (
-            <p>
-              Signed in as{" "}
-              <Link
-                href={githubProfileUrl!}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-link hover:underline"
-              >
-                @{user.username}
-              </Link>
-            </p>
-          ) : null}
-          <p>
-            PR link input, repository browser, and review history will appear
-            here in the next phase.
-          </p>
-        </CardContent>
+        {user.username ? (
+          <CardContent className="pt-0 text-sm text-muted-foreground">
+            Signed in as{" "}
+            <Link
+              href={githubProfileUrl!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-link hover:underline"
+            >
+              @{user.username}
+            </Link>
+          </CardContent>
+        ) : null}
       </Card>
+
+      <DashboardDiscovery
+        initialRepos={initialRepos}
+        initialHasNext={initialHasNext}
+        initialReposError={initialReposError}
+        needsReauth={needsReauth}
+      />
     </div>
   );
 }
