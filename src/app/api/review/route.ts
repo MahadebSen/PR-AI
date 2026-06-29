@@ -61,8 +61,36 @@ type ReviewRequestBody = {
   prUrl?: string;
   owner?: string;
   repo?: string;
-  prNumber?: number;
+  prNumber?: unknown;
 };
+
+function parseReviewTarget(body: ReviewRequestBody): {
+  owner: string;
+  repo: string;
+  prNumber: number;
+} {
+  if (body.prUrl) {
+    const parsed = parsePullRequestUrl(body.prUrl);
+    return parsed;
+  }
+
+  const owner = typeof body.owner === "string" ? body.owner.trim() : "";
+  const repo = typeof body.repo === "string" ? body.repo.trim() : "";
+  const prNumber =
+    typeof body.prNumber === "number"
+      ? body.prNumber
+      : Number.parseInt(String(body.prNumber ?? ""), 10);
+
+  if (!owner || !repo || body.prNumber == null) {
+    throw new PullRequestUrlError("Provide prUrl or owner, repo, and prNumber");
+  }
+
+  if (!Number.isInteger(prNumber) || prNumber <= 0) {
+    throw new PullRequestUrlError("Invalid pull request number");
+  }
+
+  return { owner, repo, prNumber };
+}
 
 export async function POST(request: Request) {
   const session = await requireApiSession();
@@ -90,24 +118,7 @@ export async function POST(request: Request) {
   let prNumber: number;
 
   try {
-    if (body.prUrl) {
-      const parsed = parsePullRequestUrl(body.prUrl);
-      owner = parsed.owner;
-      repo = parsed.repo;
-      prNumber = parsed.prNumber;
-    } else if (body.owner && body.repo && body.prNumber) {
-      owner = body.owner;
-      repo = body.repo;
-      prNumber = body.prNumber;
-    } else {
-      return Response.json(
-        {
-          error: "Provide prUrl or owner, repo, and prNumber",
-          code: "INVALID_REQUEST",
-        },
-        { status: 400 },
-      );
-    }
+    ({ owner, repo, prNumber } = parseReviewTarget(body));
   } catch (error) {
     if (error instanceof PullRequestUrlError) {
       const { status, body: errorBody } = toApiErrorResponse(error);

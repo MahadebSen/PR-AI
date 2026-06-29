@@ -4,6 +4,10 @@ import {
   listOpenPulls,
   toApiErrorResponse,
 } from "@/lib/core/github";
+import {
+  getLatestJobsForPullRequests,
+  pullRequestKey,
+} from "@/lib/db/reviews";
 
 type RouteContext = {
   params: Promise<{ owner: string; repo: string }>;
@@ -34,7 +38,21 @@ export async function GET(request: Request, context: RouteContext) {
     const octokit = await getAuthenticatedOctokit(session.user.id);
     const result = await listOpenPulls(octokit, owner, repo, page, perPage);
 
-    return Response.json(result);
+    const jobMap = await getLatestJobsForPullRequests(
+      session.user.id,
+      result.pulls.map((pull) => ({
+        repoOwner: owner,
+        repoName: repo,
+        prNumber: pull.number,
+      })),
+    );
+
+    const pulls = result.pulls.map((pull) => ({
+      ...pull,
+      latestJob: jobMap.get(pullRequestKey(owner, repo, pull.number)) ?? null,
+    }));
+
+    return Response.json({ ...result, pulls });
   } catch (error) {
     const { status, body } = toApiErrorResponse(error);
     return Response.json(body, { status });

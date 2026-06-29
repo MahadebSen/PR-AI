@@ -12,7 +12,7 @@ import { StartReviewButton } from "@/components/discovery/StartReviewButton";
 import { GitHubReauthBanner } from "@/components/discovery/GitHubReauthBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { apiFetch, isReauthError } from "@/lib/api/client";
+import { apiFetch, isUnauthorizedError } from "@/lib/api/client";
 import type { ReviewJobStatus } from "@/types/review";
 
 export type ReviewJobItem = {
@@ -52,10 +52,11 @@ export function ReviewHistoryTable({ initialJobs }: ReviewHistoryTableProps) {
       setJobs(result.jobs);
       setError(null);
     } catch (err) {
-      if (isReauthError(err)) {
-        setReauthRequired(true);
-        setError("Re-authenticate GitHub to view review history");
-      } else if (err instanceof Error) {
+      if (isUnauthorizedError(err)) {
+        window.location.href = "/sign-in?callbackUrl=/history";
+        return;
+      }
+      if (err instanceof Error) {
         setError(err.message);
       } else {
         setError("Failed to load review history");

@@ -34,9 +34,12 @@ export async function apiFetch<T>(
 
 export function isReauthError(error: unknown): boolean {
   return (
-    error instanceof ApiRequestError &&
-    (error.code === "GITHUB_REAUTH" || error.status === 401)
+    error instanceof ApiRequestError && error.code === "GITHUB_REAUTH"
   );
+}
+
+export function isUnauthorizedError(error: unknown): boolean {
+  return error instanceof ApiRequestError && error.status === 401;
 }
 
 export const GITHUB_SIGN_IN_URL = "/api/auth/signin?callbackUrl=/dashboard";

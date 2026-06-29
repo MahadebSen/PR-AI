@@ -12,14 +12,6 @@ import type { ReviewJobStatus } from "@/types/review";
 
 import { PullRequestRow, type PullRequestRowData } from "./PullRequestRow";
 
-type JobSummary = {
-  id: string;
-  repoOwner: string;
-  repoName: string;
-  prNumber: number;
-  status: ReviewJobStatus;
-};
-
 type RepoCardProps = {
   repo: RepoSummary;
   onReauthRequired?: () => void;
@@ -29,9 +21,6 @@ export function RepoCard({ repo, onReauthRequired }: RepoCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pulls, setPulls] = useState<PullRequestRowData[]>([]);
-  const [jobMap, setJobMap] = useState<Map<string, { id: string; status: ReviewJobStatus }>>(
-    new Map(),
-  );
   const [error, setError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -40,25 +29,11 @@ export function RepoCard({ repo, onReauthRequired }: RepoCardProps) {
     setError(null);
 
     try {
-      const [pullsResult, jobsResult] = await Promise.all([
-        apiFetch<{ pulls: PullRequestRowData[] }>(
-          `/api/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/pulls`,
-        ),
-        apiFetch<{ jobs: JobSummary[] }>("/api/review?limit=100"),
-      ]);
+      const result = await apiFetch<{ pulls: PullRequestRowData[] }>(
+        `/api/repos/${encodeURIComponent(repo.owner)}/${encodeURIComponent(repo.name)}/pulls`,
+      );
 
-      setPulls(pullsResult.pulls);
-
-      const map = new Map<string, { id: string; status: ReviewJobStatus }>();
-      for (const job of jobsResult.jobs) {
-        if (job.repoOwner === repo.owner && job.repoName === repo.name) {
-          const key = `${job.repoOwner}/${job.repoName}#${job.prNumber}`;
-          if (!map.has(key)) {
-            map.set(key, { id: job.id, status: job.status });
-          }
-        }
-      }
-      setJobMap(map);
+      setPulls(result.pulls);
       setHasLoaded(true);
     } catch (err) {
       if (isReauthError(err)) {
@@ -112,9 +87,6 @@ export function RepoCard({ repo, onReauthRequired }: RepoCardProps) {
             </Badge>
           ) : null}
         </button>
-        <Badge variant="secondary" className="shrink-0">
-          {repo.openIssuesCount} open PRs
-        </Badge>
       </CardHeader>
       {expanded ? (
         <CardContent className="p-0 pb-2">
@@ -136,23 +108,18 @@ export function RepoCard({ repo, onReauthRequired }: RepoCardProps) {
               No open pull requests
             </p>
           ) : null}
-          {pulls.map((pull) => {
-            const key = `${repo.owner}/${repo.name}#${pull.number}`;
-            const job = jobMap.get(key);
-
-            return (
-              <PullRequestRow
-                key={pull.number}
-                owner={repo.owner}
-                repo={repo.name}
-                pull={pull}
-                jobId={job?.id}
-                jobStatus={job?.status}
-                onReauthRequired={onReauthRequired}
-                onReviewStarted={handleReviewStarted}
-              />
-            );
-          })}
+          {pulls.map((pull) => (
+            <PullRequestRow
+              key={pull.number}
+              owner={repo.owner}
+              repo={repo.name}
+              pull={pull}
+              jobId={pull.latestJob?.id}
+              jobStatus={pull.latestJob?.status as ReviewJobStatus | undefined}
+              onReauthRequired={onReauthRequired}
+              onReviewStarted={handleReviewStarted}
+            />
+          ))}
         </CardContent>
       ) : null}
     </Card>

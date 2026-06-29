@@ -14,6 +14,7 @@ export {
   GitHubAuthError,
   GitHubForbiddenError,
   GitHubNotFoundError,
+  GitHubRateLimitError,
   PullRequestUrlError,
   mapGitHubError,
   toApiErrorResponse,

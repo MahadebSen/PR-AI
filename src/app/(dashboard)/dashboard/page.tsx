@@ -61,8 +61,11 @@ export default async function DashboardPage() {
               Browse repositories or paste a pull request URL to start a review.
             </CardDescription>
           </div>
-          <Badge variant="secondary" className="shrink-0">
-            Connected
+          <Badge
+            variant={needsReauth ? "destructive" : "secondary"}
+            className="shrink-0"
+          >
+            {needsReauth ? "Reconnect GitHub" : "Connected"}
           </Badge>
         </CardHeader>
         {user.username ? (

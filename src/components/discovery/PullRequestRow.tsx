@@ -14,6 +14,10 @@ export type PullRequestRowData = {
   headRef: string;
   createdAt: string;
   htmlUrl: string;
+  latestJob?: {
+    id: string;
+    status: ReviewJobStatus;
+  } | null;
 };
 
 type PullRequestRowProps = {
