@@ -16,6 +16,19 @@ enum ReviewJobStatus {
   failed
 }
 
+enum CommentAxis {
+  security
+  performance
+  code_quality
+  test_suggestions
+}
+
+enum CommentSeverity {
+  critical
+  warning
+  info
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -74,17 +87,37 @@ model GitHubToken {
 }
 
 model ReviewJob {
-  id           String          @id @default(cuid())
-  userId       String
-  repoOwner    String
-  repoName     String
-  prNumber     Int
-  status       ReviewJobStatus @default(queued)
-  errorMessage String?
-  createdAt    DateTime        @default(now())
-  completedAt  DateTime?
-  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String          @id @default(cuid())
+  userId             String
+  repoOwner          String
+  repoName           String
+  prNumber           Int
+  status             ReviewJobStatus @default(queued)
+  errorMessage       String?
+  rawTokenCount      Int?
+  filteredTokenCount Int?
+  chunkedTokenCount  Int?
+  createdAt          DateTime        @default(now())
+  completedAt        DateTime?
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments           ReviewComment[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([userId, repoOwner, repoName, prNumber])
+}
+
+model ReviewComment {
+  id              String          @id @default(cuid())
+  jobId           String
+  filePath        String
+  diffPosition    Int
+  axis            CommentAxis
+  severity        CommentSeverity
+  body            String
+  postedToGitHub  Boolean         @default(false)
+  verified        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  job             ReviewJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
 }

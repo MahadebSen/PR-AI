@@ -18,3 +18,9 @@ export type CompletionResponse = {
 export type AIServiceRouter = {
   complete(request: CompletionRequest): Promise<CompletionResponse>;
 };
+
+export {
+  createPlatformRouter,
+  getAgent1Model,
+  getAgent2Model,
+} from "./platform";

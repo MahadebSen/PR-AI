@@ -1,5 +1,5 @@
 import { requireApiSession } from "@/lib/auth/session";
-import { getReviewJob } from "@/lib/db/reviews";
+import { getReviewJob, getReviewJobCommentCount } from "@/lib/db/reviews";
 
 type RouteContext = {
   params: Promise<{ jobId: string }>;
@@ -19,6 +19,8 @@ export async function GET(_request: Request, context: RouteContext) {
     return Response.json({ error: "Review job not found" }, { status: 404 });
   }
 
+  const commentCount = await getReviewJobCommentCount(jobId);
+
   return Response.json({
     id: job.id,
     repoOwner: job.repoOwner,
@@ -26,6 +28,10 @@ export async function GET(_request: Request, context: RouteContext) {
     prNumber: job.prNumber,
     status: job.status,
     errorMessage: job.errorMessage,
+    rawTokenCount: job.rawTokenCount,
+    filteredTokenCount: job.filteredTokenCount,
+    chunkedTokenCount: job.chunkedTokenCount,
+    commentCount,
     createdAt: job.createdAt.toISOString(),
     completedAt: job.completedAt?.toISOString() ?? null,
   });
